@@ -18,20 +18,22 @@ RSpec.describe GamesController, type: :controller do
   let(:game_w_questions) { FactoryBot.create(:game_with_questions, user: user) }
 
   # группа тестов для незалогиненного юзера (Анонимус)
-  context 'Anon' do
+  context 'Anonimous' do
     # из экшена show анона посылаем
-    it 'kick from #show' do
+    it 'can not call #show' do
       # вызываем экшен
-      get :show, id: game_w_questions.id
+      get :show, params: { id: game_w_questions.id }
       # проверяем ответ
       expect(response.status).not_to eq(200) # статус не 200 ОК
       expect(response).to redirect_to(new_user_session_path) # devise должен отправить на логин
-      expect(flash[:alert]).to be # во flash должен быть прописана ошибка
+      expect(flash[:alert]).to be # во flash должна быть прописана ошибка
     end
   end
 
+
+
   # группа тестов на экшены контроллера, доступных залогиненным юзерам
-  context 'Usual user' do
+  context 'Authorized user' do
     # перед каждым тестом в группе
     before(:each) { sign_in user } # логиним юзера user с помощью спец. Devise метода sign_in
 
@@ -42,18 +44,15 @@ RSpec.describe GamesController, type: :controller do
 
       post :create
       game = assigns(:game) # вытаскиваем из контроллера поле @game
-
-      # проверяем состояние этой игры
-      expect(game.finished?).to be_falsey
+      expect(game.finished?).to be_falsey # проверяем состояние этой игры
       expect(game.user).to eq(user)
-      # и редирект на страницу этой игры
-      expect(response).to redirect_to(game_path(game))
+      expect(response).to redirect_to(game_path(game)) # редирект на страницу этой игры
       expect(flash[:notice]).to be
     end
 
     # юзер видит свою игру
     it '#show game' do
-      get :show, id: game_w_questions.id
+      get :show, params: { id: game_w_questions.id }
       game = assigns(:game) # вытаскиваем из контроллера поле @game
       expect(game.finished?).to be_falsey
       expect(game.user).to eq(user)
@@ -65,7 +64,7 @@ RSpec.describe GamesController, type: :controller do
     # юзер отвечает на игру корректно - игра продолжается
     it 'answers correct' do
       # передаем параметр params[:letter]
-      put :answer, id: game_w_questions.id, letter: game_w_questions.current_game_question.correct_answer_key
+      put :answer, params: { id: game_w_questions.id, letter: game_w_questions.current_game_question.correct_answer_key }
       game = assigns(:game)
 
       expect(game.finished?).to be_falsey
@@ -81,7 +80,7 @@ RSpec.describe GamesController, type: :controller do
       expect(game_w_questions.audience_help_used).to be_falsey
 
       # фигачим запрос в контроллен с нужным типом
-      put :help, id: game_w_questions.id, help_type: :audience_help
+      put :help, params: { id: game_w_questions.id, help_type: :audience_help }
       game = assigns(:game)
 
       # проверяем, что игра не закончилась, что флажок установился, и подсказка записалась
